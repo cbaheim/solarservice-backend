@@ -1,30 +1,24 @@
 from fastapi import FastAPI
-from supabase_client import supabase
-from pydantic import BaseModel
-from typing import List
-from fastapi.middleware.cors import CORSMiddleware
+import httpx
+import os
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-class Agreement(BaseModel):
-    id: int
-    name: str
-    address: str
-    lat: float
-    lon: float
-    start_date: str
-    duration_years: int
-    next_service: str
-    status: str
+@app.get("/")
+def root():
+    return {"message": "SolarService backend er oppe og går ✅"}
 
-@app.get("/agreements", response_model=List[Agreement])
-def get_agreements():
-    data = supabase.table("agreements").select("*").execute()
-    return data.data
+@app.get("/agreements")
+async def get_agreements():
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+    }
+    url = f"{SUPABASE_URL}/rest/v1/agreements?select=*"
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        return response.json()
